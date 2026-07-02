@@ -202,7 +202,7 @@ $isPaid = $data['is_paid'] ?? 0;
             </div>
 
             <div class="flex justify-center mb-4">
-              <img src="../assets/img/qris-dana.png" class="w-64 rounded-xl shadow">
+              <img src="../assets/images/QRISs.jpeg" class="w-64 rounded-xl shadow">
             </div>
 
             <a href="https://wa.me/6282140363716"

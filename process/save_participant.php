@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
   exit;
 }
 
-$fullname  = trim($_POST['fullname']);
+$fullname   = trim($_POST['fullname']);
 $age        = (int) $_POST['age'];
 $gender     = trim($_POST['gender']);
 $education  = trim($_POST['education']);
@@ -20,29 +20,71 @@ if (
   empty($gender) ||
   empty($education)
 ) {
-  die("Data belum lengkap.");
+  $_SESSION['error'] = "Data belum lengkap.";
+  header("Location: ../pages/biodata.php");
+  exit;
 }
 
-// cek email jika diisi
+/*
+|--------------------------------------------------------------------------
+| Cek Nama
+|--------------------------------------------------------------------------
+*/
+
+$checkName = mysqli_prepare($conn, "SELECT id FROM participants WHERE fullname = ?");
+mysqli_stmt_bind_param($checkName, "s", $fullname);
+mysqli_stmt_execute($checkName);
+mysqli_stmt_store_result($checkName);
+
+if (mysqli_stmt_num_rows($checkName) > 0) {
+
+  $_SESSION['error'] = "Nama peserta sudah terdaftar.";
+
+  header("Location: ../pages/biodata.php");
+  exit;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Cek Email
+|--------------------------------------------------------------------------
+*/
+
 if (!empty($email)) {
 
-  $check = mysqli_prepare($conn, "SELECT id FROM participants WHERE email=?");
-  mysqli_stmt_bind_param($check, "s", $email);
-  mysqli_stmt_execute($check);
-  mysqli_stmt_store_result($check);
+  $checkEmail = mysqli_prepare($conn, "SELECT id FROM participants WHERE email = ?");
+  mysqli_stmt_bind_param($checkEmail, "s", $email);
+  mysqli_stmt_execute($checkEmail);
+  mysqli_stmt_store_result($checkEmail);
 
-  if (mysqli_stmt_num_rows($check) > 0) {
-    die("Email sudah pernah digunakan.");
+  if (mysqli_stmt_num_rows($checkEmail) > 0) {
+
+    $_SESSION['error'] = "Email sudah pernah digunakan.";
+
+    header("Location: ../pages/biodata.php");
+    exit;
   }
 }
 
-// membuat kode peserta
+/*
+|--------------------------------------------------------------------------
+| Membuat kode peserta
+|--------------------------------------------------------------------------
+*/
+
 $unique_code = "PAULI-" . strtoupper(substr(md5(uniqid()), 0, 8));
 
-// simpan peserta
-$stmt = mysqli_prepare($conn, "INSERT INTO participants
+/*
+|--------------------------------------------------------------------------
+| Simpan peserta
+|--------------------------------------------------------------------------
+*/
+
+$stmt = mysqli_prepare($conn, "
+INSERT INTO participants
 (unique_code, fullname, gender, age, education, email)
-VALUES (?,?,?,?,?,?)");
+VALUES (?,?,?,?,?,?)
+");
 
 mysqli_stmt_bind_param(
   $stmt,
@@ -56,18 +98,28 @@ mysqli_stmt_bind_param(
 );
 
 if (!mysqli_stmt_execute($stmt)) {
-  die("Gagal menyimpan peserta.");
+
+  $_SESSION['error'] = "Gagal menyimpan data peserta.";
+
+  header("Location: ../pages/biodata.php");
+  exit;
 }
 
 $participant_id = mysqli_insert_id($conn);
 
-// membuat session token
+/*
+|--------------------------------------------------------------------------
+| Session Test
+|--------------------------------------------------------------------------
+*/
+
 $session_token = bin2hex(random_bytes(32));
 
-// simpan session database
-$stmt2 = mysqli_prepare($conn, "INSERT INTO test_sessions
+$stmt2 = mysqli_prepare($conn, "
+INSERT INTO test_sessions
 (participant_id, session_token, ip_address, user_agent)
-VALUES (?,?,?,?)");
+VALUES (?,?,?,?)
+");
 
 $ip = $_SERVER['REMOTE_ADDR'];
 $user_agent = $_SERVER['HTTP_USER_AGENT'];
@@ -83,11 +135,21 @@ mysqli_stmt_bind_param(
 
 mysqli_stmt_execute($stmt2);
 
-// buat session php
+/*
+|--------------------------------------------------------------------------
+| Session PHP
+|--------------------------------------------------------------------------
+*/
+
 $_SESSION['participant_id'] = $participant_id;
 $_SESSION['participant_code'] = $unique_code;
 $_SESSION['session_token'] = $session_token;
 
-// redirect
+/*
+|--------------------------------------------------------------------------
+| Redirect
+|--------------------------------------------------------------------------
+*/
+
 header("Location: ../pages/instruction.php");
 exit;

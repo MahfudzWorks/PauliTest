@@ -148,6 +148,22 @@ require '../includes/session.php';
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <?php if (isset($_SESSION['error'])): ?>
+    <script>
+      Swal.fire({
+        icon: 'error',
+        title: 'Pendaftaran Gagal',
+        text: '<?= $_SESSION['error']; ?>',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#2563eb'
+      });
+    </script>
+  <?php
+    unset($_SESSION['error']);
+  endif;
+  ?>
 </body>
 
 </html>
